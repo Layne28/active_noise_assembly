@@ -1,0 +1,6 @@
+seed*
+*.in
+*.conf
+log/*
+build/*
+JMJR*
