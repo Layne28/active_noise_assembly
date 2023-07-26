@@ -9,12 +9,13 @@ import glob
 import h5py
 import pandas as pd
 import numba
+import math
 
 def main():
 
     in_folder = sys.argv[1]
     #rc = float(sys.argv[2]) #default: 2^(1/6) plus a small number
-    rc=pow(2,1.0/6)*1.2
+    rc=pow(2,1.0/6)*1.1
 
     #run_tests(in_folder)
 
@@ -54,14 +55,23 @@ def main():
         traj_length = times.shape[0]
         num_clusters = np.zeros(traj_length)
 
+        #Initialize cell list
+        print("Initializing cell list parameters...")
+        ncell_x, ncell_y, cellsize_x, cellsize_y, cell_neigh = init_cell_list(edges, rc)
+        print("Done.")
+
         #Create file for dumping clusters
+        #TODO: change this to modifying traj.h5
         cluster_file = h5py.File(subfolder + '/prod/clusters.h5', 'w')
 
         for t in range(traj_length):
             if t%100==0:
                 print('frame ', t)
 
-            cluster_id = sort_clusters(get_clusters(pos[t,:,:], edges, rc))
+            #Create cell list for locating pairs of particles
+            head, cell_list, cell_index = create_cell_list(pos[t,:,:], edges, ncell_x, ncell_y, cellsize_x, cellsize_y)
+
+            cluster_id = sort_clusters(get_clusters(pos[t,:,:], edges, head, cell_list, cell_index, cell_neigh, rc))
             num_clusters[t] = np.max(cluster_id)
             unique, counts = np.unique(cluster_id, return_counts=True)          
 
@@ -70,17 +80,18 @@ def main():
             cluster_sizes.append(counts[1:]) #exclude the "0" cluster
 
             #Save cluster-labeled data to file
+            #TODO: change this to modify original traj.h5 file
             if t==0:
                 cluster_file.create_dataset('/data/time', data=np.array([times[t]]), chunks=True, maxshape=(None,))
                 cluster_file.create_dataset('/data/cluster_ids', data=np.array([cluster_id]), chunks=True, maxshape=(None,N))
-                cluster_file.create_dataset('/data/value', data=np.array([pos[t,:,:]]), chunks=True, maxshape=(None,N,3))
+                #cluster_file.create_dataset('/data/value', data=np.array([pos[t,:,:]]), chunks=True, maxshape=(None,N,3))
             else:
                 cluster_file['/data/time'].resize(cluster_file['/data/time'].shape[0] + 1, axis=0)
                 cluster_file['/data/time'][-1] = times[t]
                 cluster_file['/data/cluster_ids'].resize(cluster_file['/data/cluster_ids'].shape[0] + 1, axis=0)
                 cluster_file['/data/cluster_ids'][-1] = cluster_id
-                cluster_file['/data/value'].resize(cluster_file['/data/value'].shape[0] + 1, axis=0)
-                cluster_file['/data/value'][-1] = pos[t,:,:]
+                #cluster_file['/data/value'].resize(cluster_file['/data/value'].shape[0] + 1, axis=0)
+                #cluster_file['/data/value'][-1] = pos[t,:,:]
 
         if np.any(all_num_clusters == -1):
             all_num_clusters = num_clusters
@@ -101,8 +112,89 @@ def main():
     #Write data
     np.savetxt(in_folder + '/cluster_hist.txt', np.c_[size_bins,cluster_size_hist,num_hist], header='bin size num')
 
+##################
+#Cell list functions
+##################
+
+def init_cell_list(edges, rcut):
+
+    #Err on the side of making cells bigger than necessary
+    ncell_x = int(math.floor(edges[0]/rcut))
+    ncell_y = int(math.floor(edges[1]/rcut))
+    if ncell_x!=ncell_y:
+        print('Warning: unequal x and y dimensions in cell grid.')# (%d and %d).' % ncell_x, ncell_y)
+    cellsize_x = edges[0]/ncell_x
+    cellsize_y = edges[0]/ncell_y
+
+    cellneigh = fill_cellneigh(ncell_x, ncell_y)
+
+    return ncell_x, ncell_y, cellsize_x, cellsize_y, cellneigh
+
 @numba.jit(nopython=True)
-def get_clusters(pos, edges, rc):
+def create_cell_list(pos, edges, nx, ny, sx, sy):
+
+    N = pos.shape[0]
+    head = (-1)*np.ones(nx*ny)
+    cell_list = np.zeros(N)
+    cell_index = np.zeros(N)
+    
+    N = pos.shape[0]
+    for i in range(N):
+        #Assume pbc in [-L_mu/2, L_mu/2] for mu=x,y
+        #TODO: check that this is true
+        shiftx = pos[i,0] + edges[0]/2.0
+        shifty = pos[i,1] + edges[1]/2.0
+        icell = int(shiftx/sx) + int(shifty/sy)*nx
+        if icell>nx*ny:
+            print('WARNING: icell greater than nx*ny')#: icell=%d' % icell)
+        cell_index[i] = icell
+        cell_list[i] = head[icell]
+        if cell_list[i]>=N:
+            print('ERROR: list[i]>=N')#=%d' % list[i])
+            #exit()
+        head[icell] = i
+
+    return head, cell_list, cell_index
+
+@numba.jit(nopython=True)
+def fill_cellneigh(nx, ny):
+
+    cellneigh = np.zeros((nx*ny, 9)) #at most 8 neighbor cells in 2D
+    for ix in range(nx):
+        for iy in range(ny):
+            icell = ix + iy*nx
+            nneigh = 0
+            for i in range(-1,2):
+                jx = ix + i
+                #Enforce pbc
+                if jx<0:
+                    jx += nx
+                if jx>=nx:
+                    jx -= nx
+                for j in range(-1,2):
+                    jy = iy + j
+                    #Enforce pbc
+                    if jy<0:
+                        jy += ny
+                    if jy>=ny:
+                        jy -= ny
+                    jcell = jx + jy*nx
+                    cellneigh[icell][nneigh+1] = jcell
+                    nneigh += 1
+            cellneigh[icell][0] = nneigh
+            if nneigh!=9:
+                print('Error: number of neighbors should be 9 including cell itself.')# % nneigh)
+                #exit()
+
+    return cellneigh
+
+
+##################
+#Cluster functions
+##################
+
+@numba.jit(nopython=True)
+def get_clusters(pos, edges, head, cell_list, cell_index, cell_neigh, rc):
 
     #Returns a numpy array specifying the index of the cluster
     #to which each node belongs
@@ -117,21 +209,34 @@ def get_clusters(pos, edges, rc):
         if cluster_id[i]==0:
             clusternumber += 1
             cluster_id[i] = clusternumber
-            harvest_cluster(clusternumber, i, cluster_id, pos, edges, rc)
+            harvest_cluster(clusternumber, i, cluster_id, pos, edges, head, cell_list, cell_index, cell_neigh, rc)
 
     return cluster_id
 
 @numba.jit(nopython=True)
-def harvest_cluster(clusternumber, ipart, cluster_id, pos, edges, rc):
+def harvest_cluster(clusternumber, ipart, cluster_id, pos, edges, head, cell_list, cell_index, cell_neigh, rc):
 
+    #Note that due to limitations of numba this is restricted to 2d for now
     pos1 = np.array([pos[ipart,0],pos[ipart,1]]) #pos[ipart,:]
-    for j in range(pos.shape[0]): #this is slow, could make faster with neighbor list
-        pos2 = np.array([pos[j,0],pos[j,1]])#pos[j,:]
-        #rij = get_min_dist(pos[ipart,:],pos[j,:], edges[0], edges[1])
-        rij = get_min_dist(pos1,pos2, edges[0], edges[1])
-        if j!=ipart and rij<=rc and cluster_id[j]==0:
-            cluster_id[j] = clusternumber
-            harvest_cluster(clusternumber, j, cluster_id, pos, edges, rc)
+
+    icell = int(cell_index[ipart])
+    for nc in range(cell_neigh[icell][0]):
+        jcell = int(cell_neigh[icell][nc+1])
+        jpart = int(head[jcell])
+        while jpart != -1:
+            pos2 = np.array([pos[jpart,0],pos[jpart,1]])
+            rij = get_min_dist(pos1,pos2, edges[0], edges[1])
+            if jpart!=ipart and rij<=rc and cluster_id[jpart]==0:
+                cluster_id[jpart] = clusternumber
+                harvest_cluster(clusternumber, jpart, cluster_id, pos, edges, head, cell_list, cell_index, cell_neigh, rc)
+            jpart = int(cell_list[jpart])
+
+    #for j in range(pos.shape[0]): #TODO: this is slow, make faster with cell list
+    #    pos2 = np.array([pos[j,0],pos[j,1]])
+    #    rij = get_min_dist(pos1,pos2, edges[0], edges[1])
+    #    if j!=ipart and rij<=rc and cluster_id[j]==0:
+    #        cluster_id[j] = clusternumber
+    #        harvest_cluster(clusternumber, j, cluster_id, pos, edges, rc)
 
 def sort_clusters(cluster_id_arr):
 

@@ -4,3 +4,5 @@ seed*
 log/*
 build/*
 JMJR*
+*.png
+slurm*.out

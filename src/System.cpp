@@ -454,8 +454,6 @@ arma::vec System::get_force_neighbor_grid(Particle &p1) {
     return force;
 }
 
-//TODO: fill this in
-
 std::vector<arma::vec> System::get_forces_cell_list() {
 
     //update cell list
