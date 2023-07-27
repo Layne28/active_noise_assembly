@@ -39,8 +39,6 @@ for t in range(nframes):
         #define colormap
         maxnum = np.max(cids_curr)
         print(maxnum)
-        if t==580:
-            print(cids_curr)
         mycolors = cm.get_cmap('Purples_r', maxnum)
         newcolors=mycolors(np.linspace(0,1,maxnum))
         #make the first few clusters distinct colors

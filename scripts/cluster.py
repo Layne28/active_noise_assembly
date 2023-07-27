@@ -14,8 +14,9 @@ import math
 def main():
 
     in_folder = sys.argv[1]
+    rc_multiplier = sys.argv[2]
     #rc = float(sys.argv[2]) #default: 2^(1/6) plus a small number
-    rc=pow(2,1.0/6)*1.1
+    rc=pow(2,1.0/6)*rc_multiplier
 
     #run_tests(in_folder)
 
@@ -62,7 +63,7 @@ def main():
 
         #Create file for dumping clusters
         #TODO: change this to modifying traj.h5
-        cluster_file = h5py.File(subfolder + '/prod/clusters.h5', 'w')
+        cluster_file = h5py.File(subfolder + '/prod/clusters_rc=%f.h5' % rc, 'w')
 
         for t in range(traj_length):
             if t%100==0:
@@ -77,7 +78,7 @@ def main():
 
             #Record volume (# of particles in cluster)
             #and (TODO) surface area (# of exposed particles in cluster)
-            cluster_sizes.append(counts[1:]) #exclude the "0" cluster
+            #cluster_sizes.append(counts[1:]) #exclude the "0" cluster
 
             #Save cluster-labeled data to file
             #TODO: change this to modify original traj.h5 file
@@ -110,7 +111,7 @@ def main():
     num_hist, num_bin_edges = np.histogram(all_num_clusters, np.arange(0,N+2,1)-0.5, density=True)
 
     #Write data
-    np.savetxt(in_folder + '/cluster_hist.txt', np.c_[size_bins,cluster_size_hist,num_hist], header='bin size num')
+    np.savetxt(in_folder + '/cluster_hist_rc=%f.txt' % rc, np.c_[size_bins,cluster_size_hist,num_hist], header='bin size num')
 
 ##################
 #Cell list functions

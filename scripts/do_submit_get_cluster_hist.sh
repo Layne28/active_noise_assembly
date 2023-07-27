@@ -13,7 +13,6 @@ vas=(1.00)
 taus=(0.01 0.10 0.30 1.00 10.00)
 lambdas=(0.50 1.00 2.00 3.00 5.00 10.00)
 potential="wca"
-rcmult=1.0
 
 for tau in "${taus[@]}"
 do
@@ -23,8 +22,8 @@ do
         do
             for va in "${vas[@]}"
             do
-                input=/scratch0/laynefrechette/active-noise-assembly-results/${potential}/kT\=${kT}/phi\=${phi}/va\=${va}/tau\=${tau}/lambda\=${lambda}/Lx\=${Lx}_Ly\=${Ly}/nx\=${nx}_ny\=${ny}/seed\=1
-                sbatch /home/laynefrechette/active_noise_assembly/scripts/submit_cluster.sh $input $rcmult
+                input=/scratch0/laynefrechette/active-noise-assembly-results/${potential}/kT\=${kT}/phi\=${phi}/va\=${va}/tau\=${tau}/lambda\=${lambda}/Lx\=${Lx}_Ly\=${Ly}/nx\=${nx}_ny\=${ny}/seed\=1/prod
+                sbatch /home/laynefrechette/active_noise_assembly/scripts/submit_get_cluster_hist.sh $input
             done
         done
     done
