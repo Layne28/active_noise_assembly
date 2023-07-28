@@ -14,6 +14,7 @@ import math
 def main():
 
     in_folder = sys.argv[1]
+    rc = float(sys.argv[2])
     nchunks = 10 #make nchunks histograms for sequential trajectory segments
 
     #Initialize data containers
@@ -23,7 +24,7 @@ def main():
     
     #Create file for dumping clusters
     #TODO: change this to modifying traj.h5
-    cluster_file = h5py.File(in_folder + '/clusters.h5', 'r')
+    cluster_file = h5py.File(in_folder + '/clusters_rc=%f.h5' % rc, 'r')
     times = np.array(cluster_file['/data/time'])
     cluster_ids = np.array(cluster_file['/data/cluster_ids'])
     cluster_file.close()
@@ -58,6 +59,6 @@ def main():
         print(size_bins)
 
         #Write data
-        np.savetxt(in_folder + '/cluster_hist_chunk=%d.txt' % n, np.c_[size_bins,cluster_size_hist], header='bin size')
+        np.savetxt(in_folder + '/cluster_hist_rc=%f_chunk=%d.txt' % (rc, n), np.c_[size_bins,cluster_size_hist], header='bin size')
 
 main()

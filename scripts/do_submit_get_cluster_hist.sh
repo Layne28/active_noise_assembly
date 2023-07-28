@@ -2,6 +2,8 @@
 
 module load share_modules/ANACONDA/5.3_py3
 
+rc=$1
+
 Lx=100.0
 Ly=100.0
 nx=200
@@ -23,7 +25,7 @@ do
             for va in "${vas[@]}"
             do
                 input=/scratch0/laynefrechette/active-noise-assembly-results/${potential}/kT\=${kT}/phi\=${phi}/va\=${va}/tau\=${tau}/lambda\=${lambda}/Lx\=${Lx}_Ly\=${Ly}/nx\=${nx}_ny\=${ny}/seed\=1/prod
-                sbatch /home/laynefrechette/active_noise_assembly/scripts/submit_get_cluster_hist.sh $input
+                sbatch /home/laynefrechette/active_noise_assembly/scripts/submit_get_cluster_hist.sh $input $rc
             done
         done
     done

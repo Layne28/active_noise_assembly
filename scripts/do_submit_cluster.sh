@@ -13,7 +13,7 @@ vas=(1.00)
 taus=(0.01 0.10 0.30 1.00 10.00)
 lambdas=(0.50 1.00 2.00 3.00 5.00 10.00)
 potential="wca"
-rcmult=1.0
+rcmult=$1
 
 for tau in "${taus[@]}"
 do

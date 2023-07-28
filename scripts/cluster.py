@@ -14,7 +14,7 @@ import math
 def main():
 
     in_folder = sys.argv[1]
-    rc_multiplier = sys.argv[2]
+    rc_multiplier = float(sys.argv[2])
     #rc = float(sys.argv[2]) #default: 2^(1/6) plus a small number
     rc=pow(2,1.0/6)*rc_multiplier
 

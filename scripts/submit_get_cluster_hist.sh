@@ -9,8 +9,9 @@
 #SBATCH --exclude=compute-3-17
 
 folder=$1
+rc=$2
 
 run_dir="/home/laynefrechette/active_noise_assembly/scripts"
 
-python3 $run_dir/get_cluster_hist.py $folder
+python3 $run_dir/get_cluster_hist.py $folder $rc
 
