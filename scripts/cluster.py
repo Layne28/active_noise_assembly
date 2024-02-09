@@ -9,10 +9,14 @@ import glob
 import h5py
 import pandas as pd
 import numba
+#from numba import gdb_init
 import math
+import faulthandler
+
 
 def main():
 
+    faulthandler.enable()
     in_folder = sys.argv[1]
     rc_multiplier = float(sys.argv[2])
     #rc = float(sys.argv[2]) #default: 2^(1/6) plus a small number
@@ -58,7 +62,8 @@ def main():
 
         #Initialize cell list
         print("Initializing cell list parameters...")
-        ncell_x, ncell_y, cellsize_x, cellsize_y, cell_neigh = init_cell_list(edges, rc)
+        #ncell_x, ncell_y, cellsize_x, cellsize_y, cell_neigh = init_cell_list(edges, rc)
+        ncell_x, ncell_y, cellsize_x, cellsize_y, cell_neigh = init_cell_list(edges, 2.5)
         print("Done.")
 
         #Create file for dumping clusters

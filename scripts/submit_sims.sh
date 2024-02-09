@@ -14,7 +14,8 @@ seed_file=$3
 
 echo "Running assembly simulation with input file: $in_file"
 
-run_dir="/home/laynefrechette/active_noise_assembly/bin/"
+run_dir="${HOME}/.local/bin"
+echo ${run_dir}
 
-$run_dir/assembly $in_file $seed $seed_file
+$run_dir/ParticleSimTools $in_file $seed $seed_file
 

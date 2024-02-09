@@ -50,6 +50,8 @@ System::System(ParamDict &theParams, gsl_rng *&the_rg) {
     }
 
     //Initialize cell list
+    //TODO: WRITE TESTS FOR THIS. MAY NEED TO EXTEND
+    //SIZE OF ARRAY BY 1
     if(do_cell_list==1){
         if(dim!=2) {
             std::cout << "Error: cell lists not yet supported in d!=2." << std::endl;

@@ -48,6 +48,7 @@ def main():
         cluster_sizes.append(counts)
 
     #Get histograms
+    #TODO: CHECK THIS. I THINK IT IS ONLY GETTING THE FIRST 10 FRAMES!!!!
     hist_list = []
     size_list = []
     chunk_size = int(traj_length/nchunks)
